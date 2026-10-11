@@ -28,4 +28,15 @@ Chronologisches Log der Planungs- und Umsetzungsentscheidungen.
 
 ## Umsetzungslog
 
-(wird während der Umsetzung ergänzt, siehe unten)
+| U | Datum | Ereignis |
+|---|---|---|
+| U1 | 2026-10-10 | T1–T3 fertig; 33 Unit-Tests auf Anhieb grün |
+| U2 | 2026-10-10 | Lint-Fehler `react-hooks/refs`: `stateRef.current = state` während Render → in `useEffect` verschoben |
+| U3 | 2026-10-10 | T4–T8 fertig; `npm run check` grün; Web-Export baut |
+| U4 | 2026-10-10 | Release-Build im iOS-27-Simulator startet dank `enableSceneSupport`; Oberfläche korrekt |
+| U5 | 2026-10-10 | `simctl pbcopy` hängt auf diesem Xcode 27 (Timeout) → Zwischenablage im Simulator nicht automatisiert testbar |
+| U6 | 2026-10-10 | `simctl openurl` zeigt Systemdialog „In Ablage öffnen?“; ohne Simulator-GUI nicht antippbar → Deep-Link im Web getestet |
+| U7 | 2026-10-11 | Web-Test in Chrome: Deep-Link, Typerkennung, Dedupe, Filter, Pinnwand, Verlauf leeren, Persistenz ✔ |
+| U8 | 2026-10-11 | Eigenes App-Icon (gestapelte Karten) statt Platzhalter aus morse-trainer |
+| U9 | 2026-10-11 | IPA gebaut (`dist/Ablage.ipa`) |
+
