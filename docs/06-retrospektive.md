@@ -44,7 +44,16 @@ Stand: 2026-10-11
 3. Link-Vorschau (Seitentitel laden), optional, weil sie Netzwerk braucht.
 4. Export/Import des Verlaufs als JSON (Backup ohne iCloud).
 
-## Feedback des Nutzers
+## Feedback des Nutzers (2026-10-11)
 
-> _Noch ausstehend._ Bitte nach dem ersten Test am iPhone hier eintragen:
-> Was fehlt im Vergleich zum Vorbild? Was stört? Funktioniert das Erfassen beim Öffnen zuverlässig?
+- App startet in LiveContainer, Funktionen stimmen, Anforderungen größtenteils erfüllt.
+- **Enttäuschung:** Das Vorbild fühlt sich anders an. Man soll die App nicht öffnen müssen.
+  1. Kopieren wird **unsichtbar** festgehalten.
+  2. **Eigene Tastatur**: Tastatur wechseln → Verlauf (Text, Bilder, Dateien) sehen und einsetzen.
+  3. Zweiter Tab in der Tastatur: Notizen / angepinnte Einträge, dauerhaft.
+  4. Wichtigstes: der Verlauf ist **von überall über die Tastatur** erreichbar.
+- Nutzer gibt maximale Berechtigungen, würde auch Schutzmechanismen umgehen (eigene App, eigenes Gerät).
+
+**Lernpunkt:** Im Requirements Engineering habe ich die Tastatur wegen des fehlenden Accounts auf „Kann“
+gesetzt, ohne zu fragen, ob sie für den Nutzer der Kern ist. Sie ist der Kern. Nächstes Mal bei
+blockierten Kernfunktionen zuerst nachfragen statt still herabstufen.
