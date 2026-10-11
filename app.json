@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Ablage",
+    "slug": "ablage",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "ablage",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.philipphoang.ablage",
+      "buildNumber": "1",
+      "config": { "usesNonExemptEncryption": false }
+    },
+    "web": { "favicon": "./assets/favicon.png", "output": "single" },
+    "experiments": { "typedRoutes": false },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-asset",
+      ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 180, "resizeMode": "contain", "backgroundColor": "#101114" }],
+      ["expo-build-properties", { "ios": { "enableSceneSupport": true } }]
+    ]
+  }
+}
