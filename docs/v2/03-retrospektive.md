@@ -38,3 +38,23 @@ Stand: 2026-10-12
 ## Feedback des Nutzers
 
 _Ausstehend – nach dem ersten Test mit SideStore hier eintragen._
+
+## Erster Gerätetest (2026-10-12) und v2.1
+
+**Feedback:** Installiert per Sideload-Werkzeug. Tastatur funktioniert und zeigt Kopiertes. Aber:
+1. „Voller Zugriff“ und „Gemeinsamer Speicher“ blieben orange, obwohl voller Zugriff an ist.
+2. App „stürzt ab“, wenn man aus den Einstellungen zurückkommt.
+3. Einsetzen-Dialog bei jedem Erfassen nervt; Wunsch: automatisch, ohne App, jeder Workaround ok.
+4. Screenshots sollen auch im Verlauf landen.
+
+**Ursache 1:** Das Werkzeug hat keine App Group eingerichtet → App und Tastatur hatten getrennte Speicher.
+**Fix v2.1:**
+- Ersatz-Synchronisierung über private benannte Zwischenablagen (`Mirror.swift`), gleiche Team-ID genügt.
+  Im Simulator mit `-ForceMirror` geprüft: lokale Datei gelöscht → Daten kamen aus dem Spiegel zurück.
+- Kurzbefehle-Aktion „In Ablage sichern“ (App Intent, läuft im Hintergrund, kein Dialog) für Back-Tap.
+- Bildschirmfotos automatisch übernehmen (Fotomediathek, beim Öffnen von App/Tastatur).
+- Deployment-Ziel iOS 18 (für die Intent-API).
+
+**Zu 2:** Vermutlich beendet iOS die App selbst, wenn man Tastatur-Rechte ändert (normales Verhalten). Kein Absturzbericht
+verfügbar (iPhone nicht am Mac). Falls es auch ohne Rechte-Änderung passiert: Bericht unter Einstellungen → Datenschutz →
+Analyse & Verbesserungen → Analysedaten → „Ablage…“.

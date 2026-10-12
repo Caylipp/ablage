@@ -60,6 +60,11 @@ struct Library: Codable, Equatable {
     var lastChangeCount: Int = -1
     /// Wann die Tastatur zuletzt mit vollem Zugriff lief (Status für die Einrichtungsseite)
     var keyboardSeen: Date?
+    /// Zeitpunkt der letzten Änderung – entscheidet, welche Kopie (Datei oder Spiegel) aktueller ist
+    var modifiedAt: Date?
+    /// Neue Bildschirmfotos automatisch übernehmen (optional, damit alte Daten weiter dekodierbar sind)
+    var importScreenshots: Bool?
+    var lastScreenshotAt: Date?
 
     struct NewClip {
         var kind: ClipKind
