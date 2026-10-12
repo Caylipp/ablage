@@ -31,6 +31,7 @@ struct AblageApp: App {
                 guard p == .active else { return }
                 store.reload()
                 if store.library.settings.autoCapture { Pasteboard.capture(into: store) }
+                if Screenshots.importNew(into: store) > 0 { toast.show("Bildschirmfoto übernommen") }
             }
             .onOpenURL { url in handle(url) }
             .onAppear {

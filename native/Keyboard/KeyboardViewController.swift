@@ -45,7 +45,8 @@ final class KeyboardViewController: UIInputViewController {
         store.mutate { $0.keyboardSeen = Date() }
         // Der Kern: was seit dem letzten Mal kopiert wurde, landet jetzt unsichtbar im Verlauf.
         let result = Pasteboard.capture(into: store)
-        if result == .added { model.flash("Zwischenablage gesichert") }
+        let shots = Screenshots.importNew(into: store, limit: 3)
+        if result == .added { model.flash("Zwischenablage gesichert") } else if shots > 0 { model.flash("Bildschirmfoto übernommen") }
     }
 }
 

@@ -20,8 +20,10 @@ struct SettingsView: View {
                     StatusRow(ok: store.library.keyboardSeen != nil, title: "Voller Zugriff aktiv",
                               hint: store.library.keyboardSeen.map { "Tastatur zuletzt gesehen \(Detect.relative($0))" }
                                 ?? "Dort auf „Ablage“ tippen → „Vollen Zugriff erlauben“. Danach die Tastatur einmal öffnen.")
-                    StatusRow(ok: store.isShared, title: "Gemeinsamer Speicher",
-                              hint: store.isShared ? "App und Tastatur teilen ihre Daten." : "App Group fehlt – mit SideStore/AltStore installieren.")
+                    StatusRow(ok: store.isShared || store.library.keyboardSeen != nil, title: "App und Tastatur verbunden",
+                              hint: store.isShared ? "Über App Group."
+                                  : store.library.keyboardSeen != nil ? "Über Ersatzweg (private Zwischenablage), weil das Sideload-Werkzeug keine App Group eingerichtet hat."
+                                  : "Tastatur einmal öffnen, dann verbindet sie sich.")
                     Button("iPhone-Einstellungen öffnen") {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     }
@@ -40,6 +42,23 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle("Bildschirmfotos übernehmen", isOn: Binding(
+                        get: { store.library.importScreenshots == true },
+                        set: { v in
+                            guard v else { store.mutate { $0.importScreenshots = false }; return }
+                            Screenshots.requestAccess { ok in
+                                store.mutate {
+                                    $0.importScreenshots = ok
+                                    $0.lastScreenshotAt = Date().addingTimeInterval(-3600)
+                                }
+                                if ok { Screenshots.importNew(into: store) } else { toast.show("Fotozugriff verweigert") }
+                            }
+                        }))
+                } footer: {
+                    Text("Neue Bildschirmfotos landen automatisch im Verlauf – beim Öffnen der App oder der Tastatur.")
+                }
+
+                Section {
                     Picker("Verlauf behalten", selection: Binding(
                         get: { store.library.settings.historyLimit },
                         set: { v in store.mutate { $0.settings.historyLimit = v; $0.applyLimit() } })) {
@@ -51,8 +70,8 @@ struct SettingsView: View {
                     Text("\(store.library.clips.count) Einträge, davon \(kept) angepinnt. Angepinntes zählt nicht zum Limit und bleibt beim Leeren erhalten.")
                 }
 
-                Section("Kurzbefehl (optional)") {
-                    Text("Kurzbefehle → „Zwischenablage abrufen“ → „URL codieren“ → Text „ablage://add?text=“ + Ergebnis → „URLs öffnen“. Mit Bedienungshilfen → Tippen → Auf Rückseite tippen auf Doppeltippen legen.")
+                Section("Sichern ohne App und ohne Nachfrage") {
+                    Text("1. App Kurzbefehle → + → Aktion „Zwischenablage abrufen“.\n2. Aktion „In Ablage sichern“ (von Ablage), als Inhalt die Zwischenablage.\n3. Einstellungen → Bedienungshilfen → Tippen → Auf Rückseite tippen → Doppeltippen → diesen Kurzbefehl.\n\nDann: kopieren, zweimal hinten aufs iPhone tippen – gesichert, ohne Dialog.")
                         .font(.footnote)
                 }
 

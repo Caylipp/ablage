@@ -34,6 +34,9 @@ final class SharedStore: ObservableObject {
             ids += (b.object(forInfoDictionaryKey: "ALTAppGroups") as? [String]) ?? []
         }
         ids.append(defaultGroup)
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ForceMirror") { ids = [] }
+        #endif
         for id in ids {
             if let u = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id),
                (try? FileManager.default.createDirectory(at: u.appendingPathComponent("Ablage"), withIntermediateDirectories: true)) != nil {
@@ -56,11 +59,19 @@ final class SharedStore: ObservableObject {
         var result = Library()
         var err: NSError?
         NSFileCoordinator().coordinate(readingItemAt: fileURL, options: [], error: &err) { url in
-            if let data = try? Data(contentsOf: url), let lib = try? Self.decoder.decode(Library.self, from: data) {
-                result = lib
-            }
+            result = freshest(local: try? Data(contentsOf: url))
         }
         return result
+    }
+
+    /// Ohne App Group: die neuere von lokaler Datei und Spiegel (benannte Zwischenablage) gewinnt.
+    private func freshest(local: Data?) -> Library {
+        let mine = local.flatMap { try? Self.decoder.decode(Library.self, from: $0) }
+        guard !isShared, let m = Mirror.readLibrary(), let other = try? Self.decoder.decode(Library.self, from: m) else {
+            return mine ?? Library()
+        }
+        guard let mine else { return other }
+        return (other.modifiedAt ?? .distantPast) > (mine.modifiedAt ?? .distantPast) ? other : mine
     }
 
     /// Ändert den Bestand prozess-sicher. Liefert den Rückgabewert der Änderung.
@@ -70,11 +81,13 @@ final class SharedStore: ObservableObject {
         var lib = Library()
         var err: NSError?
         NSFileCoordinator().coordinate(writingItemAt: fileURL, options: .forMerging, error: &err) { url in
-            if let data = try? Data(contentsOf: url), let saved = try? Self.decoder.decode(Library.self, from: data) {
-                lib = saved
-            }
+            lib = freshest(local: try? Data(contentsOf: url))
             out = change(&lib)
-            if let data = try? Self.encoder.encode(lib) { try? data.write(to: url, options: .atomic) }
+            lib.modifiedAt = Date()
+            if let data = try? Self.encoder.encode(lib) {
+                try? data.write(to: url, options: .atomic)
+                if !isShared { Mirror.writeLibrary(data) }
+            }
         }
         if out == nil { out = change(&lib) } // Koordination fehlgeschlagen: trotzdem im Speicher anwenden
         let snapshot = lib
@@ -101,12 +114,26 @@ final class SharedStore: ObservableObject {
         guard let files = try? FileManager.default.contentsOfDirectory(atPath: imagesURL.path) else { return }
         for f in files where !keep.contains(f) {
             try? FileManager.default.removeItem(at: imagesURL.appendingPathComponent(f))
+            if !isShared { Mirror.removeFile(f) }
         }
     }
 
     // MARK: Dateien
 
-    func url(for file: String?) -> URL? { file.map { imagesURL.appendingPathComponent($0) } }
+    /// Ohne App Group holt sie fehlende Dateien aus dem Spiegel des anderen Prozesses.
+    func url(for file: String?) -> URL? {
+        guard let file else { return nil }
+        let u = imagesURL.appendingPathComponent(file)
+        if !isShared, !FileManager.default.fileExists(atPath: u.path), let data = Mirror.file(file) {
+            try? data.write(to: u)
+        }
+        return u
+    }
+
+    private func storeFile(_ data: Data, _ name: String) throws {
+        try data.write(to: imagesURL.appendingPathComponent(name))
+        if !isShared { Mirror.putFile(name, data) }
+    }
 
     /// Speichert Bilddaten (PNG/JPEG …) ohne sie voll zu dekodieren – wichtig fürs 60-MB-Limit der Tastatur.
     func saveImage(_ data: Data, ext: String) -> Library.NewClip? {
@@ -117,7 +144,7 @@ final class SharedStore: ObservableObject {
         let id = Library.newId()
         let file = "\(id).\(ext)"
         let thumb = "\(id)-thumb.jpg"
-        do { try data.write(to: imagesURL.appendingPathComponent(file)) } catch { return nil }
+        do { try storeFile(data, file) } catch { return nil }
         let opts: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceThumbnailMaxPixelSize: 360,
@@ -125,7 +152,7 @@ final class SharedStore: ObservableObject {
         ]
         if let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary),
            let jpg = UIImage(cgImage: cg).jpegData(compressionQuality: 0.75) {
-            try? jpg.write(to: imagesURL.appendingPathComponent(thumb))
+            try? storeFile(jpg, thumb)
         }
         return .init(kind: .image, imageFile: file, thumbFile: thumb, imageWidth: w, imageHeight: h,
                      hash: Detect.hash(data, prefix: "i"))
@@ -134,7 +161,7 @@ final class SharedStore: ObservableObject {
     func saveFile(_ data: Data, type: UTType) -> Library.NewClip? {
         let ext = type.preferredFilenameExtension ?? "bin"
         let file = "\(Library.newId()).\(ext)"
-        do { try data.write(to: imagesURL.appendingPathComponent(file)) } catch { return nil }
+        do { try storeFile(data, file) } catch { return nil }
         let name = "\(type.localizedDescription ?? "Datei") (\(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)))"
         return .init(kind: .file, imageFile: file, fileName: name, hash: Detect.hash(data, prefix: "f"))
     }
