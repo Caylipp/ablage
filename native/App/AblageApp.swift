@@ -33,6 +33,9 @@ struct AblageApp: App {
                 store.reload()
                 if store.library.settings.autoCapture { Pasteboard.capture(into: store) }
                 if Screenshots.importNew(into: store) > 0 { toast.show("Bildschirmfoto übernommen") }
+                store.mutate { $0.purgeExpired() }
+                Enrichment.run(store)
+                if let n = MacSync.sync(store), n > 0 { toast.show("\(n) Einträge vom Mac übernommen") }
             }
             .onOpenURL { url in handle(url) }
             .onAppear {
@@ -42,12 +45,21 @@ struct AblageApp: App {
             }
     }
 
-    /// ablage://add?text=… (Kurzbefehl)
+    /// ablage://add?text=… (Kurzbefehl) und ablage://copy?id=… (Widget)
     private func handle(_ url: URL) {
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        if url.host == "copy", let id = items.first(where: { $0.name == "id" })?.value {
+            store.reload()
+            if let clip = store.library.clips.first(where: { $0.id == id }) {
+                Pasteboard.write(clip, store: store)
+                toast.show("Kopiert")
+            }
+            return
+        }
         guard url.host == "add",
-              let text = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "text" })?.value,
+              let text = items.first(where: { $0.name == "text" })?.value,
               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        store.mutate { $0.add(.init(kind: Detect.kind(text), text: text, hash: Detect.hash(text))) }
+        store.mutate { $0.add($0.textClip(text)) }
         toast.show("Aus Kurzbefehl gesichert")
     }
 }

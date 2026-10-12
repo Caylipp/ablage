@@ -12,7 +12,9 @@ final class KeyboardViewController: UIInputViewController {
         model.actions = .init(
             insert: { [weak self] in self?.textDocumentProxy.insertText($0) },
             deleteBackward: { [weak self] in self?.textDocumentProxy.deleteBackward() },
-            nextKeyboard: { [weak self] in self?.advanceToNextInputMode() }
+            nextKeyboard: { [weak self] in self?.advanceToNextInputMode() },
+            moveCursor: { [weak self] in self?.textDocumentProxy.adjustTextPosition(byCharacterOffset: $0) },
+            readClipboard: { UIPasteboard.general.string }
         )
         let host = UIHostingController(rootView: KeyboardView(model: model))
         host.view.backgroundColor = .clear
@@ -20,7 +22,7 @@ final class KeyboardViewController: UIInputViewController {
         addChild(host)
         view.addSubview(host.view)
         host.view.translatesAutoresizingMaskIntoConstraints = false
-        let height = view.heightAnchor.constraint(equalToConstant: 290)
+        let height = view.heightAnchor.constraint(equalToConstant: 300)
         height.priority = .defaultHigh
         NSLayoutConstraint.activate([
             host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -35,6 +37,8 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        applyAppearance()
+        model.reset()
         model.hasFullAccess = hasFullAccess
         model.showGlobe = needsInputModeSwitchKey
         guard hasFullAccess else { return }
@@ -48,5 +52,16 @@ final class KeyboardViewController: UIInputViewController {
         let shots = Screenshots.importNew(into: store, limit: 3)
         if result == .added { model.flash("Zwischenablage gesichert") } else if shots > 0 { model.flash("Bildschirmfoto übernommen") }
     }
-}
 
+    override func textDidChange(_ textInput: UITextInput?) {
+        super.textDidChange(textInput)
+        applyAppearance()
+    }
+
+    /// Dunkel, wenn das Textfeld eine dunkle Tastatur wünscht oder das System dunkel ist
+    private func applyAppearance() {
+        let dark = textDocumentProxy.keyboardAppearance == .dark || traitCollection.userInterfaceStyle == .dark
+        host?.overrideUserInterfaceStyle = dark ? .dark : .light
+        model.dark = dark
+    }
+}

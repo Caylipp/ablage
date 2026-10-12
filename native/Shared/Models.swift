@@ -34,6 +34,15 @@ struct Clip: Codable, Identifiable, Equatable {
     var title: String?
     var pinboardIds: [String] = []
     var isNote: Bool = false
+    /// Sensible Einträge (Codes, Passwörter) verfallen automatisch
+    var expiresAt: Date?
+    /// Per Texterkennung gefundener Text in Bildern (durchsuchbar)
+    var ocrText: String?
+    var ocrDone: Bool?
+    /// Linkvorschau
+    var linkTitle: String?
+    var linkImageFile: String?
+    var linkDone: Bool?
 
     /// Angepinnt = dauerhaft: Notiz oder in mindestens einer Pinnwand
     var isKept: Bool { isNote || !pinboardIds.isEmpty }
@@ -65,6 +74,14 @@ struct Library: Codable, Equatable {
     /// Neue Bildschirmfotos automatisch übernehmen (optional, damit alte Daten weiter dekodierbar sind)
     var importScreenshots: Bool?
     var lastScreenshotAt: Date?
+    /// Tracking-Parameter aus Links entfernen (nil = an)
+    var cleanLinks: Bool?
+    /// Codes/Passwörter nach 10 Minuten löschen (nil = an)
+    var autoDeleteSensitive: Bool?
+    /// Titel und Bild von Links laden (nil = an)
+    var fetchLinkPreviews: Bool?
+
+    static let sensitiveLifetime: TimeInterval = 600
 
     struct NewClip {
         var kind: ClipKind
@@ -76,6 +93,22 @@ struct Library: Codable, Equatable {
         var fileName: String? = nil
         var hash: String
         var isNote = false
+        var expiresAt: Date? = nil
+    }
+
+    /// Baut einen Text-Eintrag nach den Einstellungen: Links säubern, Sensibles markieren.
+    func textClip(_ raw: String, concealed: Bool = false, now: Date = Date()) -> NewClip {
+        var text = raw
+        let kind = Detect.kind(text)
+        if kind == .link, cleanLinks != false { text = Detect.cleanLink(text) }
+        let sensitive = autoDeleteSensitive != false && (concealed || Detect.isSensitive(text))
+        return NewClip(kind: kind, text: text, hash: Detect.hash(text),
+                       expiresAt: sensitive ? now.addingTimeInterval(Library.sensitiveLifetime) : nil)
+    }
+
+    /// Entfernt abgelaufene, nicht angepinnte Einträge
+    mutating func purgeExpired(now: Date = Date()) {
+        clips.removeAll { c in !c.isKept && (c.expiresAt.map { $0 <= now } ?? false) }
     }
 
     /// Fügt hinzu oder holt Dublette nach oben. Liefert (id, istNeu).
@@ -85,12 +118,13 @@ struct Library: Codable, Equatable {
             var c = clips.remove(at: i)
             c.usedAt = now
             if n.isNote { c.isNote = true }
+            if let e = n.expiresAt { c.expiresAt = e }
             clips.insert(c, at: 0)
             return (c.id, false)
         }
         let c = Clip(id: id, kind: n.kind, text: n.text, imageFile: n.imageFile, thumbFile: n.thumbFile,
                      imageWidth: n.imageWidth, imageHeight: n.imageHeight, fileName: n.fileName, hash: n.hash,
-                     createdAt: now, usedAt: now, pinboardIds: [], isNote: n.isNote)
+                     createdAt: now, usedAt: now, pinboardIds: [], isNote: n.isNote, expiresAt: n.expiresAt)
         clips.insert(c, at: 0)
         applyLimit()
         return (id, true)
@@ -123,6 +157,9 @@ struct Library: Codable, Equatable {
             $0.text = text
             $0.kind = Detect.kind(text)
             $0.hash = Detect.hash(text)
+            $0.linkDone = nil
+            $0.linkTitle = nil
+            $0.linkImageFile = nil
         }
     }
 
@@ -143,20 +180,23 @@ struct Library: Codable, Equatable {
         applyLimit()
     }
 
-    func filtered(query: String = "", kind: ClipKind? = nil, pinboard: String? = nil, keptOnly: Bool = false) -> [Clip] {
+    func filtered(query: String = "", kind: ClipKind? = nil, pinboard: String? = nil, keptOnly: Bool = false,
+                  now: Date = Date()) -> [Clip] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         return clips.filter { c in
-            (kind == nil || c.kind == kind)
+            (c.isKept || (c.expiresAt.map { $0 > now } ?? true))
+                && (kind == nil || c.kind == kind)
                 && (pinboard == nil || c.pinboardIds.contains(pinboard!))
                 && (!keptOnly || c.isKept)
                 && (q.isEmpty || (c.text ?? "").lowercased().contains(q) || (c.title ?? "").lowercased().contains(q)
-                    || (c.fileName ?? "").lowercased().contains(q))
+                    || (c.fileName ?? "").lowercased().contains(q) || (c.ocrText ?? "").lowercased().contains(q)
+                    || (c.linkTitle ?? "").lowercased().contains(q))
         }
     }
 
     /// Bild-/Vorschaudateien, die kein Eintrag mehr nutzt
     func referencedFiles() -> Set<String> {
-        Set(clips.flatMap { [$0.imageFile, $0.thumbFile].compactMap { $0 } })
+        Set(clips.flatMap { [$0.imageFile, $0.thumbFile, $0.linkImageFile].compactMap { $0 } })
     }
 
     static func newId() -> String { UUID().uuidString.lowercased() }

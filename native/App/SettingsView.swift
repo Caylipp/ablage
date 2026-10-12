@@ -5,6 +5,11 @@ struct SettingsView: View {
     @EnvironmentObject var toast: Toast
     @State private var confirmClear = false
     @State private var testInput = ""
+    @State private var pickFolder = false
+    @State private var exportDoc: BackupDocument?
+    @State private var showExport = false
+    @State private var importBackup = false
+    @State private var macFolder = MacSync.folderName
 
     private var keyboardAdded: Bool {
         UITextInputMode.activeInputModes.contains {
@@ -83,6 +88,9 @@ struct SettingsView: View {
                                 if ok { Screenshots.importNew(into: store) } else { toast.show("Fotozugriff verweigert") }
                             }
                         }))
+                    Toggle("Links von Tracking säubern", isOn: flag(\.cleanLinks))
+                    Toggle("Codes und Passwörter nach 10 Min. löschen", isOn: flag(\.autoDeleteSensitive))
+                    Toggle("Linkvorschau laden", isOn: flag(\.fetchLinkPreviews))
                     Picker("Verlauf behalten", selection: Binding(
                         get: { store.library.settings.historyLimit },
                         set: { v in store.mutate { $0.settings.historyLimit = v; $0.applyLimit() } })) {
@@ -93,14 +101,58 @@ struct SettingsView: View {
                     Text("Optionen")
                 } footer: {
                     let kept = store.library.clips.filter(\.isKept).count
-                    Text("\(store.library.clips.count) Einträge, davon \(kept) angepinnt. Angepinntes zählt nicht zum Limit und bleibt beim Leeren erhalten. Neue Bildschirmfotos landen beim nächsten Öffnen von App oder Tastatur im Verlauf.")
+                    Text("\(store.library.clips.count) Einträge, davon \(kept) angepinnt. Angepinntes zählt nicht zum Limit und bleibt beim Leeren erhalten. Neue Bildschirmfotos landen beim nächsten Öffnen von App oder Tastatur im Verlauf. Die Linkvorschau lädt Titel und Bild direkt von der verlinkten Seite.")
                 }
 
                 Section {
-                    Text("Alle Daten bleiben auf diesem iPhone. Ablage 2.2").font(.footnote).foregroundStyle(.secondary)
+                    if let macFolder {
+                        LabeledContent("Ordner", value: macFolder)
+                        Button { syncNow() } label: { Label("Jetzt abgleichen", systemImage: "arrow.triangle.2.circlepath") }
+                        Button("Ordner entfernen", role: .destructive) { MacSync.clearFolder(); self.macFolder = nil }
+                    } else {
+                        Button { pickFolder = true } label: { Label("Ordner in iCloud Drive wählen", systemImage: "folder.badge.plus") }
+                    }
+                } header: {
+                    Text("Mac-Sync")
+                } footer: {
+                    Text("Lege in iCloud Drive einen Ordner **Ablage** an und wähle ihn hier. Ablage schreibt dort deinen Verlauf als verlauf.json und übernimmt Zeilen aus an-iphone.txt. Auf dem Mac lesen die Raycast-Skripte aus dem Projektordner mac/raycast diese Dateien. Abgeglichen wird beim Öffnen der App und bei jedem Sichern per Kurzbefehl.")
+                }
+
+                Section {
+                    Button {
+                        if let doc = try? Backup.export(store) { exportDoc = doc; showExport = true }
+                    } label: { Label("Backup exportieren", systemImage: "square.and.arrow.up") }
+                    Button { importBackup = true } label: { Label("Backup importieren", systemImage: "square.and.arrow.down") }
+                } header: {
+                    Text("Backup")
+                } footer: {
+                    Text("Eine Datei mit allen Einträgen, Pinnwänden und Bildern. Beim Import kommt nur dazu, was noch fehlt. Tipp: vor dem Neuinstallieren exportieren.")
+                }
+
+                Section {
+                    Text("Alle Daten bleiben auf diesem iPhone. Ablage 3.0").font(.footnote).foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("Einrichtung")
+            .fileImporter(isPresented: $pickFolder, allowedContentTypes: [.folder]) { result in
+                if case .success(let url) = result {
+                    MacSync.setFolder(url)
+                    macFolder = MacSync.folderName
+                    syncNow()
+                }
+            }
+            .fileExporter(isPresented: $showExport, document: exportDoc, contentType: .json, defaultFilename: Backup.fileName) { result in
+                if case .success = result { toast.show("Backup gespeichert") }
+            }
+            .fileImporter(isPresented: $importBackup, allowedContentTypes: [.json]) { result in
+                guard case .success(let url) = result else { return }
+                do {
+                    let n = try Backup.restore(from: url, into: store)
+                    toast.show("\(n) Einträge wiederhergestellt")
+                } catch {
+                    toast.show("Backup konnte nicht gelesen werden")
+                }
+            }
             .confirmationDialog("Verlauf leeren?", isPresented: $confirmClear, titleVisibility: .visible) {
                 Button("Leeren", role: .destructive) {
                     store.mutate { $0.clearHistory() }
@@ -108,6 +160,15 @@ struct SettingsView: View {
                 }
             } message: { Text("Angepinnte Einträge bleiben erhalten.") }
         }
+    }
+
+    private func syncNow() {
+        if let n = MacSync.sync(store) { toast.show("Abgeglichen – \(n) neu vom Mac") } else { toast.show("Kein Zugriff auf den Ordner") }
+    }
+
+    /// Schalter für optionale Bool-Einstellungen, bei denen nil „an“ bedeutet
+    private func flag(_ key: WritableKeyPath<Library, Bool?>) -> Binding<Bool> {
+        Binding(get: { store.library[keyPath: key] != false }, set: { v in store.mutate { $0[keyPath: key] = v } })
     }
 
     private var sampleText: LocalizedStringResource { "Hallo aus Ablage! Dieser Text kommt aus deinem Verlauf." }

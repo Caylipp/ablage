@@ -11,9 +11,12 @@ xcodebuild -project Ablage.xcodeproj -scheme Ablage -configuration Release -sdk 
   | grep -E "error:|BUILD SUCCEEDED|BUILD FAILED" || true
 
 APP=build/Build/Products/Release-iphoneos/Ablage.app
-[ -d "$APP/PlugIns/AblageKeyboard.appex" ] || { echo "Build fehlgeschlagen: $APP oder Tastatur fehlt" >&2; exit 1; }
+for X in AblageKeyboard AblageWidgets; do
+  [ -d "$APP/PlugIns/$X.appex" ] || { echo "Build fehlgeschlagen: $X.appex fehlt" >&2; exit 1; }
+done
 
 codesign -f -s - --entitlements Keyboard/AblageKeyboard.entitlements "$APP/PlugIns/AblageKeyboard.appex"
+codesign -f -s - --entitlements Widgets/AblageWidgets.entitlements "$APP/PlugIns/AblageWidgets.appex"
 codesign -f -s - --entitlements App/Ablage.entitlements "$APP"
 
 OUT=../dist

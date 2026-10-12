@@ -2,6 +2,7 @@ import Foundation
 import ImageIO
 import UIKit
 import UniformTypeIdentifiers
+import WidgetKit
 
 /// Gemeinsamer Datenspeicher für App und Tastatur im App-Group-Container.
 /// Jede Änderung: koordiniert laden → ändern → atomar schreiben → Darwin-Notification an den anderen Prozess.
@@ -83,6 +84,7 @@ final class SharedStore: ObservableObject {
         NSFileCoordinator().coordinate(writingItemAt: fileURL, options: .forMerging, error: &err) { url in
             lib = freshest(local: try? Data(contentsOf: url))
             out = change(&lib)
+            lib.purgeExpired()
             lib.modifiedAt = Date()
             if let data = try? Self.encoder.encode(lib) {
                 try? data.write(to: url, options: .atomic)
@@ -94,6 +96,7 @@ final class SharedStore: ObservableObject {
         if Thread.isMainThread { library = snapshot } else { DispatchQueue.main.async { self.library = snapshot } }
         removeOrphans(keep: snapshot.referencedFiles())
         CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName(Self.changedNote), nil, nil, true)
+        WidgetCenter.shared.reloadAllTimelines()
         return out
     }
 
@@ -129,6 +132,10 @@ final class SharedStore: ObservableObject {
         }
         return u
     }
+
+    /// Speichert beliebige Daten unter einem Dateinamen im images/-Ordner (Linkvorschau, Backup-Import)
+    @discardableResult
+    func saveData(_ data: Data, name: String) -> Bool { (try? storeFile(data, name)) != nil }
 
     private func storeFile(_ data: Data, _ name: String) throws {
         try data.write(to: imagesURL.appendingPathComponent(name))

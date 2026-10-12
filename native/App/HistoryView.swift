@@ -70,7 +70,7 @@ struct HistoryView: View {
                     PasteButton(payloadType: String.self) { strings in
                         guard let s = strings.first else { return }
                         DispatchQueue.main.async {
-                            let (_, isNew) = store.mutate { $0.add(.init(kind: Detect.kind(s), text: s, hash: Detect.hash(s))) }
+                            let (_, isNew) = store.mutate { $0.add($0.textClip(s)) }
                             toast.show(isNew ? "Eingefügt" : "Schon vorhanden – nach oben geholt")
                         }
                     }
@@ -138,7 +138,11 @@ struct NoteEditor: View {
         NavigationStack {
             Form {
                 TextField("Titel (optional)", text: $title)
-                TextEditor(text: $text).frame(minHeight: 200).focused($focused)
+                Section {
+                    TextEditor(text: $text).frame(minHeight: 200).focused($focused)
+                } footer: {
+                    PlaceholderBar(text: $text)
+                }
             }
             .navigationTitle("Neue Notiz")
             .navigationBarTitleDisplayMode(.inline)
@@ -157,6 +161,26 @@ struct NoteEditor: View {
                 }
             }
             .onAppear { focused = true }
+        }
+    }
+}
+
+/// Platzhalter für Bausteine einfügen – werden beim Einsetzen/Kopieren ersetzt
+struct PlaceholderBar: View {
+    @Binding var text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Platzhalter für Bausteine – werden beim Einsetzen ersetzt:")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(Templates.placeholders, id: \.self) { p in
+                        Button(p) { text += p }
+                            .font(.caption.monospaced())
+                            .buttonStyle(.bordered)
+                    }
+                }
+            }
         }
     }
 }

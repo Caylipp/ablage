@@ -84,3 +84,57 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(Library.self, from: data), lib)
     }
 }
+
+final class V3LogicTests: XCTestCase {
+    func testCleanLink() {
+        XCTAssertEqual(Detect.cleanLink("https://x.de/a?utm_source=nl&id=5&fbclid=abc"), "https://x.de/a?id=5")
+        XCTAssertEqual(Detect.cleanLink("https://open.spotify.com/track/1?si=xyz"), "https://open.spotify.com/track/1")
+        XCTAssertEqual(Detect.cleanLink("https://x.de/a?id=5"), "https://x.de/a?id=5")
+    }
+
+    func testSensitive() {
+        XCTAssertTrue(Detect.isSensitive("483920"))
+        XCTAssertTrue(Detect.isSensitive("Tr0ub4dor&3x!"))
+        XCTAssertFalse(Detect.isSensitive("Hallo Welt"))
+        XCTAssertFalse(Detect.isSensitive("12"))
+        XCTAssertFalse(Detect.isSensitive("https://x.de/Ab1!"))
+    }
+
+    func testExpiryAndPurge() {
+        var lib = Library()
+        let now = Date(timeIntervalSince1970: 1000)
+        lib.add(lib.textClip("483920", now: now), now: now)
+        lib.add(lib.textClip("normal"), now: now)
+        XCTAssertEqual(lib.filtered(now: now).count, 2)
+        let later = now.addingTimeInterval(Library.sensitiveLifetime + 1)
+        XCTAssertEqual(lib.filtered(now: later).map(\.text), ["normal"])
+        lib.purgeExpired(now: later)
+        XCTAssertEqual(lib.clips.count, 1)
+        lib.autoDeleteSensitive = false
+        XCTAssertNil(lib.textClip("483920").expiresAt)
+    }
+
+    func testTextClipCleansLinks() {
+        let lib = Library()
+        XCTAssertEqual(lib.textClip("https://x.de/?utm_medium=a").text, "https://x.de/")
+    }
+
+    func testTemplates() {
+        let now = Date(timeIntervalSince1970: 0)
+        let de = Locale(identifier: "de_DE")
+        let (out, back) = Templates.expand("Hallo {Cursor}, heute ist {Wochentag}. Kopiert: {clipboard}", now: now, locale: de, clipboard: "X")
+        XCTAssertTrue(out.hasPrefix("Hallo , heute ist "))
+        XCTAssertTrue(out.hasSuffix("Kopiert: X"))
+        XCTAssertEqual(back, out.count - "Hallo ".count)
+        XCTAssertNil(Templates.expand("ohne").1)
+        XCTAssertTrue(Templates.needsClipboard("{Zwischenablage}"))
+    }
+
+    func testTransforms() {
+        XCTAssertEqual(Transform.bullets.apply("a\n\nb"), "• a\n• b")
+        XCTAssertEqual(Transform.numbered.apply("a\nb"), "1. a\n2. b")
+        XCTAssertEqual(Transform.joinLines.apply("a\n b \n"), "a b")
+        XCTAssertEqual(Transform.trimEmptyLines.apply("a\n\n\nb"), "a\nb")
+        XCTAssertEqual(Transform.upper.apply("ab"), "AB")
+    }
+}

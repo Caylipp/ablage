@@ -40,6 +40,25 @@ struct ClipDetailView: View {
                                 .font(clip.kind == .code ? .system(.body, design: .monospaced) : .body)
                                 .frame(minHeight: 160)
                         }
+                    } footer: {
+                        if clip.kind != .image && clip.kind != .file {
+                            PlaceholderBar(text: $text)
+                        }
+                    }
+                    if let ocr = clip.ocrText {
+                        Section {
+                            Text(ocr).font(.callout).textSelection(.enabled)
+                            Button {
+                                UIPasteboard.general.string = ocr
+                                toast.show("Erkannter Text kopiert")
+                            } label: { Label("Erkannten Text kopieren", systemImage: "text.viewfinder") }
+                        } header: { Text("Text im Bild") }
+                    }
+                    if clip.expiresAt != nil && !clip.isKept {
+                        Section {
+                            Label("Wird als sensibel nach 10 Minuten gelöscht. Anpinnen behält ihn.", systemImage: "timer")
+                                .font(.footnote).foregroundStyle(.orange)
+                        }
                     }
                     Section {
                         Button { Pasteboard.write(clip, store: store); toast.show("Kopiert") } label: { Label("Kopieren", systemImage: "doc.on.doc") }
