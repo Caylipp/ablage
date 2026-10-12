@@ -20,7 +20,7 @@ struct SaveToAblageIntent: AppIntent {
         let new: Library.NewClip?
         if type.conforms(to: .text), let s = String(data: data, encoding: .utf8),
            !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            new = .init(kind: Detect.kind(s), text: s, hash: Detect.hash(s))
+            new = store.library.textClip(s)
         } else if type.conforms(to: .image) {
             new = store.saveImage(data, ext: type.preferredFilenameExtension ?? "png")
         } else {
@@ -28,6 +28,7 @@ struct SaveToAblageIntent: AppIntent {
         }
         guard let new else { return .result(dialog: "Konnte nicht gesichert werden") }
         let (_, isNew) = store.mutate { $0.add(new) }
+        MacSync.sync(store)
         return .result(dialog: isNew ? "In Ablage gesichert" : "Schon in Ablage – nach oben geholt")
     }
 }

@@ -62,6 +62,8 @@ struct ClipCardView: View {
                 Spacer(minLength: 4)
                 Text(Detect.relative(clip.usedAt)).font(.caption2).opacity(0.85).lineLimit(1).fixedSize()
                 if clip.isKept { Image(systemName: "pin.fill").font(.caption2) }
+                else if clip.expiresAt != nil { Image(systemName: "timer").font(.caption2) }
+                if clip.ocrText != nil { Image(systemName: "text.viewfinder").font(.caption2) }
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 10).padding(.vertical, 7)
@@ -92,9 +94,19 @@ struct ClipCardView: View {
                 Text(clip.text ?? "").font(.system(.footnote, design: .monospaced))
             }
         case .link:
-            VStack(alignment: .leading, spacing: 2) {
-                Text(Detect.domain(clip.text ?? "")).font(.subheadline.weight(.semibold)).lineLimit(1)
-                Text(clip.text ?? "").font(.caption).foregroundStyle(ClipKind.link.color).lineLimit(compact ? 3 : 2)
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(clip.linkTitle ?? Detect.domain(clip.text ?? "")).font(.subheadline.weight(.semibold)).lineLimit(2)
+                    if clip.linkTitle != nil {
+                        Text(Detect.domain(clip.text ?? "")).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    Text(clip.text ?? "").font(.caption).foregroundStyle(ClipKind.link.color).lineLimit(compact ? 2 : 2)
+                }
+                if !compact, let url = store.url(for: clip.linkImageFile), let img = UIImage(contentsOfFile: url.path) {
+                    Spacer(minLength: 0)
+                    Image(uiImage: img).resizable().scaledToFill().frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
             }
         case .code:
             Text(clip.text ?? "").font(.system(.caption, design: .monospaced)).lineLimit(compact ? 6 : 8)

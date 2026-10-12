@@ -33,6 +33,35 @@ enum Detect {
         return .text
     }
 
+    /// Tracking-Parameter, die beim Sichern aus Links entfernt werden
+    static let trackingParams: Set<String> = ["fbclid", "gclid", "dclid", "gbraid", "wbraid", "msclkid", "igshid", "igsh",
+                                              "mc_cid", "mc_eid", "si", "_hsenc", "_hsmi", "mkt_tok", "ref_src", "ref_url",
+                                              "yclid", "twclid", "ttclid", "spm", "s_cid", "trk", "oly_enc_id", "oly_anon_id"]
+
+    static func cleanLink(_ raw: String) -> String {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard var comps = URLComponents(string: t), let items = comps.queryItems, !items.isEmpty else { return raw }
+        let kept = items.filter { item in
+            let n = item.name.lowercased()
+            return !n.hasPrefix("utm_") && !trackingParams.contains(n)
+        }
+        guard kept.count != items.count else { return raw }
+        comps.queryItems = kept.isEmpty ? nil : kept
+        return comps.string ?? raw
+    }
+
+    private static let otp = re(#"^\s*\d{4,8}\s*$"#)
+
+    /// Bestätigungscodes (4–8 Ziffern) oder passwortartige Zeichenketten
+    static func isSensitive(_ raw: String) -> Bool {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if matches(otp, t) { return true }
+        guard (8...64).contains(t.count), !t.contains(where: \.isWhitespace), kind(t) == .text else { return false }
+        let classes = [t.contains(where: \.isUppercase), t.contains(where: \.isLowercase), t.contains(where: \.isNumber),
+                       t.contains { !$0.isLetter && !$0.isNumber }]
+        return classes.filter { $0 }.count >= 4
+    }
+
     static func url(_ text: String) -> URL? {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         return URL(string: t.lowercased().hasPrefix("http") ? t : "https://\(t)")

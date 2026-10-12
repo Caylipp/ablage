@@ -35,6 +35,20 @@
                ReferencedContainer = "container:Ablage.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "06BD8EA201B4E4F6BD8F8EEB"
+               BuildableName = "AblageWidgets.appex"
+               BlueprintName = "AblageWidgets"
+               ReferencedContainer = "container:Ablage.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
