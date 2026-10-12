@@ -1,5 +1,27 @@
 # Ablage
 
+> **Version 2 (aktuell): native iOS-App mit eigener Tastatur** in [`native/`](native/).
+> Version 1 (Expo, ohne Tastatur) liegt weiter im Wurzelordner als Archiv.
+
+## v2: Tastatur-first
+
+Kopieren → in irgendein Textfeld tippen → Globus halten → **Ablage**. Die Tastatur sichert die aktuelle
+Zwischenablage automatisch und zeigt Tab **Verlauf** und Tab **Angepinnt** (Notizen + Pinnwände).
+Antippen fügt Text direkt ein; Bilder/Dateien landen in der Zwischenablage zum Einsetzen.
+
+**Installieren** (LiveContainer geht nicht – iOS lädt Tastaturen nur aus direkt installierten Apps):
+1. `sh scripts/build-native-ipa.sh` → `dist/Ablage-native.ipa`
+2. Mit **SideStore/AltStore** installieren (übernimmt die App Group für den gemeinsamen Speicher; alle 7 Tage erneuern).
+3. Einstellungen → Allgemein → Tastatur → Tastaturen → Tastatur hinzufügen → **Ablage** → **Vollen Zugriff erlauben**.
+4. App öffnen → Tab „Einrichtung“ zeigt, ob alles grün ist.
+
+Entwicklung: `cd native && xcodegen generate && open Ablage.xcodeproj`. Tests: Schema „Ablage“ → Test.
+Debug-Startargumente: `-SeedDemo` (Beispieldaten), `-KeyboardDemo` (Tastatur-Oberfläche in der App).
+
+---
+
+## v1 (Expo, Archiv)
+
 Kostenloser Zwischenablage-Verlauf für das iPhone, nachgebaut nach dem Vorbild der Abo-App „Paste“.
 Alles bleibt lokal auf dem Gerät.
 
