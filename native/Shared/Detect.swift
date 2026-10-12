@@ -60,24 +60,24 @@ enum Detect {
         switch c.kind {
         case .image:
             if let w = c.imageWidth, let h = c.imageHeight { return "\(Int(w)) × \(Int(h))" }
-            return "Bild"
-        case .file: return c.fileName ?? "Datei"
+            return String(localized: "Bild")
+        case .file: return c.fileName ?? String(localized: "Datei")
         default:
             let words = (c.text ?? "").split(whereSeparator: \.isWhitespace).count
-            return words > 1 ? "\(words) Wörter" : "\((c.text ?? "").count) Zeichen"
+            return words > 1 ? String(localized: "\(words) Wörter") : String(localized: "\((c.text ?? "").count) Zeichen")
         }
     }
 
     static func relative(_ d: Date, now: Date = Date()) -> String {
         let s = max(0, Int(now.timeIntervalSince(d)))
-        if s < 60 { return "gerade eben" }
-        if s < 3600 { return "vor \(s / 60) Min." }
-        if s < 86400 { return "vor \(s / 3600) Std." }
+        if s < 60 { return String(localized: "gerade eben") }
+        if s < 3600 { return String(localized: "vor \(s / 60) Min.") }
+        if s < 86400 { return String(localized: "vor \(s / 3600) Std.") }
         let days = s / 86400
-        if days == 1 { return "gestern" }
-        if days < 7 { return "vor \(days) Tagen" }
+        if days == 1 { return String(localized: "gestern") }
+        if days < 7 { return String(localized: "vor \(days) Tagen") }
         let f = DateFormatter()
-        f.dateFormat = "dd.MM.yy"
+        f.dateStyle = .short
         return f.string(from: d)
     }
 }

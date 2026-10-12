@@ -6,14 +6,14 @@ enum ClipKind: String, Codable, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .text: "Text"
-        case .link: "Link"
-        case .image: "Bild"
-        case .color: "Farbe"
-        case .email: "E-Mail"
-        case .phone: "Telefon"
-        case .code: "Code"
-        case .file: "Datei"
+        case .text: String(localized: "Text")
+        case .link: String(localized: "Link")
+        case .image: String(localized: "Bild")
+        case .color: String(localized: "Farbe")
+        case .email: String(localized: "E-Mail")
+        case .phone: String(localized: "Telefon")
+        case .code: String(localized: "Code")
+        case .file: String(localized: "Datei")
         }
     }
 }
