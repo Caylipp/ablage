@@ -1,0 +1,66 @@
+import UIKit
+import UniformTypeIdentifiers
+
+/// Liest und schreibt die Zwischenablage. Erfasst nur, wenn sich changeCount seit dem letzten Blick geändert hat –
+/// so fragt iOS nicht unnötig nach und Dubletten entstehen gar nicht erst.
+enum Pasteboard {
+    enum Result { case unchanged, empty, added, moved, failed }
+
+    @discardableResult
+    static func capture(into store: SharedStore, force: Bool = false) -> Result {
+        let pb = UIPasteboard.general
+        let count = pb.changeCount
+        if !force && count == store.library.lastChangeCount { return .unchanged }
+        store.mutate { $0.lastChangeCount = count }
+
+        guard let new = read(pb, store: store) else { return pb.numberOfItems == 0 ? .empty : .failed }
+        let (_, isNew) = store.mutate { $0.add(new) }
+        return isNew ? .added : .moved
+    }
+
+    private static func read(_ pb: UIPasteboard, store: SharedStore) -> Library.NewClip? {
+        // has*-Abfragen lösen keinen Einsetzen-Dialog aus; erst das Lesen der Daten.
+        if pb.hasImages {
+            for (type, ext) in [(UTType.png, "png"), (.jpeg, "jpg"), (.heic, "heic"), (.gif, "gif")] {
+                if let data = pb.data(forPasteboardType: type.identifier), let n = store.saveImage(data, ext: ext) {
+                    // Gleiches Bild schon da? Dann die eben geschriebene Datei wird beim nächsten mutate aufgeräumt.
+                    return n
+                }
+            }
+            if let img = pb.image, let data = img.pngData() { return store.saveImage(data, ext: "png") }
+        }
+        if pb.hasStrings || pb.hasURLs, let s = pb.string ?? pb.url?.absoluteString,
+           !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return .init(kind: Detect.kind(s), text: s, hash: Detect.hash(s))
+        }
+        for type in [UTType.pdf, .zip, .data] {
+            if pb.contains(pasteboardTypes: [type.identifier]), let data = pb.data(forPasteboardType: type.identifier) {
+                return store.saveFile(data, type: type)
+            }
+        }
+        return nil
+    }
+
+    /// Legt einen Eintrag in die Zwischenablage und merkt sich den neuen changeCount (keine Selbst-Erfassung).
+    static func write(_ clip: Clip, store: SharedStore) {
+        let pb = UIPasteboard.general
+        switch clip.kind {
+        case .image:
+            if let url = store.url(for: clip.imageFile), let data = try? Data(contentsOf: url) {
+                let type = UTType(filenameExtension: url.pathExtension) ?? .png
+                pb.setData(data, forPasteboardType: type.identifier)
+            }
+        case .file:
+            if let url = store.url(for: clip.imageFile), let data = try? Data(contentsOf: url) {
+                pb.setData(data, forPasteboardType: (UTType(filenameExtension: url.pathExtension) ?? .data).identifier)
+            }
+        default:
+            pb.string = clip.text ?? ""
+        }
+        let count = pb.changeCount
+        store.mutate {
+            $0.lastChangeCount = count
+            $0.touch(clip.id)
+        }
+    }
+}
