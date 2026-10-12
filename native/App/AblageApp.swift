@@ -5,6 +5,7 @@ struct AblageApp: App {
     @StateObject private var store = SharedStore()
     @StateObject private var toast = Toast()
     @Environment(\.scenePhase) private var phase
+    @State private var tab = ProcessInfo.processInfo.arguments.contains("-SetupTab") ? 2 : 0
 
     var body: some Scene {
         WindowGroup {
@@ -19,10 +20,10 @@ struct AblageApp: App {
     }
 
     private var tabs: some View {
-            TabView {
-                HistoryView().tabItem { Label("Verlauf", systemImage: "clock") }
-                PinboardsView().tabItem { Label("Angepinnt", systemImage: "pin") }
-                SettingsView().tabItem { Label("Einrichtung", systemImage: "gearshape") }
+            TabView(selection: $tab) {
+                HistoryView().tabItem { Label("Verlauf", systemImage: "clock") }.tag(0)
+                PinboardsView().tabItem { Label("Angepinnt", systemImage: "pin") }.tag(1)
+                SettingsView().tabItem { Label("Einrichtung", systemImage: "gearshape") }.tag(2)
             }
             .environmentObject(store)
             .environmentObject(toast)
@@ -55,8 +56,8 @@ final class Toast: ObservableObject {
     @Published var text: String?
     private var work: DispatchWorkItem?
 
-    func show(_ t: String) {
-        text = t
+    func show(_ t: LocalizedStringResource) {
+        text = String(localized: t)
         work?.cancel()
         let w = DispatchWorkItem { [weak self] in self?.text = nil }
         work = w

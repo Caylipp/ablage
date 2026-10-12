@@ -31,7 +31,7 @@ struct ClipDetailView: View {
                                 Image(uiImage: img).resizable().scaledToFit().clipShape(RoundedRectangle(cornerRadius: 8))
                             }
                         case .file:
-                            Label(clip.fileName ?? "Datei", systemImage: "doc")
+                            Label(clip.fileName ?? String(localized: "Datei"), systemImage: "doc")
                         default:
                             if clip.kind == .color, let c = Color(cssHex: clip.text ?? "") {
                                 RoundedRectangle(cornerRadius: 10).fill(c).frame(height: 80)

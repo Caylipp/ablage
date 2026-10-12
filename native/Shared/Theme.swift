@@ -99,7 +99,7 @@ struct ClipCardView: View {
         case .code:
             Text(clip.text ?? "").font(.system(.caption, design: .monospaced)).lineLimit(compact ? 6 : 8)
         case .file:
-            Label(clip.fileName ?? "Datei", systemImage: "doc").font(.subheadline)
+            Label(clip.fileName ?? String(localized: "Datei"), systemImage: "doc").font(.subheadline)
         default:
             Text(clip.text ?? "").font(compact ? .footnote : .subheadline).lineLimit(compact ? 6 : 6)
         }

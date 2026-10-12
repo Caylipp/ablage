@@ -16,8 +16,8 @@ final class KeyboardModel: ObservableObject {
     @Published var toast: String?
     private var toastWork: DispatchWorkItem?
 
-    func flash(_ text: String) {
-        toast = text
+    func flash(_ text: LocalizedStringResource) {
+        toast = String(localized: text)
         toastWork?.cancel()
         let w = DispatchWorkItem { [weak self] in self?.toast = nil }
         toastWork = w

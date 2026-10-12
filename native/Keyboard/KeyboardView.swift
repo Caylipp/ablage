@@ -44,7 +44,7 @@ private struct ClipBoardView: View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
                 Picker("", selection: $tab) {
-                    ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    ForEach(Tab.allCases, id: \.self) { Text(LocalizedStringKey($0.rawValue)).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .frame(maxWidth: 220)
@@ -170,7 +170,7 @@ private struct NoAccessView: View {
         VStack(spacing: 10) {
             Image(systemName: "lock").font(.title2).foregroundStyle(.secondary)
             Text("Voller Zugriff fehlt").font(.headline)
-            Text("Einstellungen → Allgemein → Tastatur → Tastaturen → Ablage → „Vollen Zugriff erlauben“.\nNur so kann die Tastatur deinen Verlauf lesen.")
+            Text("Einstellungen → Allgemein → Tastatur → Tastaturen → Ablage → **Vollen Zugriff erlauben**.\nNur so kann die Tastatur deinen Verlauf lesen.")
                 .font(.footnote).multilineTextAlignment(.center).foregroundStyle(.secondary)
                 .padding(.horizontal)
             if model.showGlobe {

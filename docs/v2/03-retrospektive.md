@@ -58,3 +58,17 @@ _Ausstehend – nach dem ersten Test mit SideStore hier eintragen._
 **Zu 2:** Vermutlich beendet iOS die App selbst, wenn man Tastatur-Rechte ändert (normales Verhalten). Kein Absturzbericht
 verfügbar (iPhone nicht am Mac). Falls es auch ohne Rechte-Änderung passiert: Bericht unter Einstellungen → Datenschutz →
 Analyse & Verbesserungen → Analysedaten → „Ablage…“.
+
+## Feedback 2 (2026-10-12) und v2.2
+
+**Feedback:** Kurzbefehl + Back-Tap „klappt super“. Kleinigkeiten: Kurzbefehl-Bereich wirkt wie Nebensache → hervorheben;
+Texte verbessern, mehrere Sprachen (auch Englisch); kaputte Anführungszeichen entfernen; Hinweis „Einsetzen aus anderen
+Apps → Erlauben (nicht Fragen)“ fehlte; Testfeld mit Beispieltext in der Einrichtung.
+
+**Umgesetzt (v2.2):**
+- Einrichtung neu: hervorgehobene Karte „Empfohlen – Kopieren, zweimal hinten tippen“ mit 4 Schritten und Knopf „Kurzbefehle öffnen“ ganz oben.
+- Eigener Abschnitt „Ohne Nachfrage“ mit **Erlauben, nicht Fragen** und Knopf zu den Ablage-Einstellungen.
+- Abschnitt „Testen“: Beispieltext mit Kopieren-Knopf + Eingabefeld zum Ausprobieren der Tastatur.
+- Alle Anführungszeichen durch Fettdruck ersetzt.
+- Deutsch (Entwicklungssprache) + Englisch für App, Tastatur, Kurzbefehl-Aktion und Fotozugriff-Text (108 Texte),
+  Schlüssel per `SWIFT_EMIT_LOC_STRINGS` aus dem Build gezogen; im Simulator in beiden Sprachen geprüft.

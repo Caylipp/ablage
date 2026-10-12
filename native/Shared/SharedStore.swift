@@ -162,7 +162,7 @@ final class SharedStore: ObservableObject {
         let ext = type.preferredFilenameExtension ?? "bin"
         let file = "\(Library.newId()).\(ext)"
         do { try storeFile(data, file) } catch { return nil }
-        let name = "\(type.localizedDescription ?? "Datei") (\(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)))"
+        let name = "\(type.localizedDescription ?? String(localized: "Datei")) (\(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)))"
         return .init(kind: .file, imageFile: file, fileName: name, hash: Detect.hash(data, prefix: "f"))
     }
 
